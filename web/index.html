@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MMU Modern Parking System</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>MMU Modern Parking System</h1>
+    </div>
+    <div class="server-pill"><span class="dot"></span> System Online</div>
+  </header>
+
+  <main class="container">
+    <section class="stats">
+      <article class="card stat"><span>Total Slots</span><strong id="totalSlots">20</strong></article>
+      <article class="card stat"><span>Available</span><strong id="availableSlots">20</strong></article>
+      <article class="card stat"><span>Occupied</span><strong id="occupiedSlots">0</strong></article>
+      <article class="card stat"><span>Revenue</span><strong id="revenue">KSh 0.00</strong></article>
+    </section>
+
+    <section class="layout">
+      <div class="card slots-card">
+        <div class="section-heading">
+          <div><h2>Parking Slot Map</h2></div>
+          <div class="legend"><span><i class="available-dot"></i> Available</span><span><i class="occupied-dot"></i> Occupied</span></div>
+        </div>
+        <div id="slotGrid" class="slot-grid"></div>
+      </div>
+
+      <aside class="side-column">
+        <div class="card form-card">
+          <h2>Vehicle Arrival</h2>
+          <form id="arrivalForm">
+            <label>Registration Number<input id="arrivalPlate" required placeholder="KDA 123A" maxlength="20"></label>
+            <label>Driver / Owner Name<input id="owner" required placeholder="Driver name" maxlength="60"></label>
+            <button type="submit">Admit Vehicle</button>
+          </form>
+        </div>
+
+        <div class="card form-card">
+          <h2>Vehicle Exit</h2>
+          <form id="exitForm">
+            <label>Registration Number<input id="exitPlate" required placeholder="KDA 123A" maxlength="20"></label>
+            <button class="secondary" type="submit">Calculate &amp; Open Barrier</button>
+          </form>
+          <div id="exitResult" class="result hidden"></div>
+        </div>
+
+        <div class="card form-card">
+          <h2>Find Active Vehicle</h2>
+          <form id="searchForm" class="inline-form">
+            <input id="searchPlate" required placeholder="Registration number">
+            <button type="submit">Search</button>
+          </form>
+          <div id="searchResult" class="result hidden"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="card transactions-card">
+      <div class="section-heading"><div><h2>Completed Transactions</h2></div><button id="refreshBtn" class="small-btn">Refresh</button></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Plate</th><th>Slot</th><th>Arrival</th><th>Departure</th><th>Duration</th><th>Fee</th><th>Status</th></tr></thead>
+        <tbody id="transactionBody"><tr><td colspan="7" class="empty">No completed transactions yet.</td></tr></tbody></table>
+      </div>
+    </section>
+
+    <section class="card rules">
+      <h2>Parking Fee Charges</h2>
+      <div class="rule-grid"><div><b>0–30 minutes</b><span>FREE</span></div><div><b>Over 30 min–2 hours</b><span>KSh 50</span></div><div><b>Over 2–6 hours</b><span>KSh 100</span></div><div><b>Over 6 hours</b><span>KSh 500</span></div></div>
+    </section>
+  </main>
+  <footer>MMU Parking System</footer>
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
