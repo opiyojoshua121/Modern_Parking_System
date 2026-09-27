@@ -110,7 +110,9 @@ string WebServer::makeJsonResult(const OperationResult& result) {
         << ",\"durationMinutes\":" << result.durationMinutes
         << ",\"fee\":" << jsonNumber(result.fee)
         << ",\"arrival\":" << jsonString(result.arrival)
-        << ",\"departure\":" << jsonString(result.departure) << "}";
+        << ",\"departure\":" << jsonString(result.departure)
+        << ",\"receiptNumber\":" << jsonString(result.receiptNumber)
+        << ",\"vatAmount\":" << jsonNumber(result.vatAmount) << "}";
     return out.str();
 }
 
@@ -178,7 +180,8 @@ void WebServer::handleRequest(long long clientSocket, const string& method, cons
             << ",\"occupiedSlots\":" << parkingSystem.occupiedSlots()
             << ",\"activeVehicles\":" << parkingSystem.activeVehicleCount()
             << ",\"completedTrips\":" << parkingSystem.completedTripCount()
-            << ",\"revenue\":" << jsonNumber(parkingSystem.totalRevenue()) << ",\"slots\":[";
+            << ",\"revenue\":" << jsonNumber(parkingSystem.totalRevenue())
+            << ",\"vatCollected\":" << jsonNumber(parkingSystem.totalVat()) << ",\"slots\":[";
         for (size_t i = 0; i < slots.size(); ++i) {
             if (i) out << ',';
             out << "{\"id\":" << slots[i].id
@@ -203,9 +206,27 @@ void WebServer::handleRequest(long long clientSocket, const string& method, cons
                 << ",\"departure\":" << jsonString(t.departure)
                 << ",\"durationMinutes\":" << t.durationMinutes
                 << ",\"fee\":" << jsonNumber(t.fee)
-                << ",\"paymentStatus\":" << jsonString(t.paymentStatus) << '}';
+                << ",\"paymentStatus\":" << jsonString(t.paymentStatus)
+                << ",\"paymentMethod\":" << jsonString(t.paymentMethod)
+                << ",\"paymentReference\":" << jsonString(t.paymentReference)
+                << ",\"receiptNumber\":" << jsonString(t.receiptNumber)
+                << ",\"vatAmount\":" << jsonNumber(t.vatAmount) << '}';
         }
         out << "]}";
+        sendJson(clientSocket, out.str());
+        return;
+    }
+
+    if (path == "/api/rates" && method == "GET") {
+        const auto rates = parkingSystem.getRates();
+        ostringstream out;
+        out << "{\"success\":true,\"freeMinutes\":" << rates.freeMinutes
+            << ",\"firstBandMinutes\":" << rates.firstBandMinutes
+            << ",\"secondBandMinutes\":" << rates.secondBandMinutes
+            << ",\"firstBandFee\":" << jsonNumber(rates.firstBandFee)
+            << ",\"secondBandFee\":" << jsonNumber(rates.secondBandFee)
+            << ",\"overSecondBandFee\":" << jsonNumber(rates.overSecondBandFee)
+            << ",\"vatPercent\":" << jsonNumber(rates.vatPercent) << '}';
         sendJson(clientSocket, out.str());
         return;
     }
@@ -219,6 +240,41 @@ void WebServer::handleRequest(long long clientSocket, const string& method, cons
     if (path == "/api/exit" && method == "POST") {
         const auto result = parkingSystem.processExit(formValue(body, "plate"));
         sendJson(clientSocket, makeJsonResult(result), result.success ? 200 : 400, result.success ? "OK" : "Bad Request");
+        return;
+    }
+
+    if (path == "/api/payment" && method == "POST") {
+        try {
+            const auto result = parkingSystem.confirmPayment(formValue(body, "plate"), formValue(body, "method"),
+                                                             formValue(body, "reference"), stod(formValue(body, "quotedFee")));
+            sendJson(clientSocket, makeJsonResult(result), result.success ? 200 : 400,
+                     result.success ? "OK" : "Bad Request");
+        } catch (...) {
+            sendJson(clientSocket, "{\"success\":false,\"message\":\"Recalculate the fee before confirming payment.\"}",
+                     400, "Bad Request");
+        }
+        return;
+    }
+
+    if (path == "/api/rates" && method == "POST") {
+        try {
+            ParkingRates rates;
+            rates.freeMinutes = stoll(formValue(body, "freeMinutes"));
+            rates.firstBandMinutes = stoll(formValue(body, "firstBandMinutes"));
+            rates.secondBandMinutes = stoll(formValue(body, "secondBandMinutes"));
+            rates.firstBandFee = stod(formValue(body, "firstBandFee"));
+            rates.secondBandFee = stod(formValue(body, "secondBandFee"));
+            rates.overSecondBandFee = stod(formValue(body, "overSecondBandFee"));
+            rates.vatPercent = stod(formValue(body, "vatPercent"));
+            string error;
+            if (!parkingSystem.updateRates(rates, error)) {
+                sendJson(clientSocket, "{\"success\":false,\"message\":" + jsonString(error) + "}", 400, "Bad Request");
+                return;
+            }
+            sendJson(clientSocket, "{\"success\":true,\"message\":\"Rates saved.\"}");
+        } catch (...) {
+            sendJson(clientSocket, "{\"success\":false,\"message\":\"Enter valid numeric rate settings.\"}", 400, "Bad Request");
+        }
         return;
     }
 
@@ -242,6 +298,7 @@ void WebServer::handleRequest(long long clientSocket, const string& method, cons
     }
 
     if (path == "/") path = "/index.html";
+    if (path == "/board") path = "/board.html";
     if (path.find("..") != string::npos) {
         sendNotFound(clientSocket);
         return;

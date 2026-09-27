@@ -52,20 +52,20 @@ LOOK UP vehicle in activeVehicles
 IF not found: reject exit
 exitTime = current time
 minutes = ceiling((exitTime - arrivalTime) / 60 seconds)
-IF minutes <= 30: fee = 0
-ELSE IF minutes <= 120: fee = 50
-ELSE IF minutes <= 360: fee = 100
-ELSE: fee = 500
-FREE the vehicle's slot
-CREATE completed transaction
-REMOVE vehicle from activeVehicles
+fee = apply the current persisted rate bands
+IF fee = 0: record a FREE receipt and release the slot
+ELSE: return the fee quote; keep vehicle and slot active
+WAIT for operator-confirmed payment and required provider reference
+IF confirmed amount differs from current quote: reject and require recalculation
+CREATE transaction with method, reference, receipt and VAT component
+FREE the vehicle's slot and REMOVE it from activeVehicles
 SAVE database files
-REPORT fee and barrier OPEN
+REPORT payment result and barrier state
 ```
 
 ## 5. Transaction history and revenue
 
-Iterate through completed transactions to display records and sum the `fee` field. Both operations are **O(t)** where `t` is the number of completed transactions.
+Iterate through completed transactions to display receipt, payment method/reference, gross amount and VAT, and sum the `fee` and `vat_amount` fields. Operations are **O(t)** where `t` is the number of completed transactions.
 
 ## 6. Web request handling
 

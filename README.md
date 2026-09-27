@@ -1,121 +1,40 @@
-# MMU Modern Parking System 
- 
-**Project type:** Web-based parking management system
+# MMU Modern Parking System
 
-## 1. Project purpose
+Web-based parking management prototype written in C++17 with a responsive browser dashboard and a separate live entrance display. Records persist in CSV files under `data/`.
 
-This project implements the parking-system requirements in the supplied MMU task brief. The system allows drivers/attendants to see parking-slot availability before entry, register arriving vehicles, automatically allocate a slot, calculate parking time at exit, calculate the required fee, record payment, simulate opening the barrier, and keep persistent transaction records.
+## Run
 
-The backend is written in C++17. A small cross-platform HTTP server is included, so no Node.js, PHP, Python web framework, or external C++ web framework is required. The browser interface is HTML/CSS/JavaScript and communicates with the C++ server through HTTP endpoints.
+On Windows, run `build.bat` and then `run.bat`. Open `http://localhost:8080` for the operator dashboard or `http://localhost:8080/board` on an entrance display. The board and dashboard update occupancy every three seconds.
 
-## 2. Fee rules implemented
+## Features
 
-| Parking duration | Fee |
-|---|---:|
-| Up to 30 minutes | FREE |
-| Over 30 minutes up to 2 hours | KSh 50 |
-| Over 2 hours up to 6 hours | KSh 100 |
-| Over 6 hours | KSh 500 |
+- Displays 20 bays and their live occupancy on the dashboard and kiosk board.
+- Registers vehicle plate, driver, arrival time, and allocated bay.
+- Calculates duration and the current charge at exit.
+- Requires an operator to confirm received cash or verify an M-Pesa/card reference before a paid exit releases the bay.
+- Saves configurable time bands, fees, and VAT rate in `data/rates.csv`; changes take effect without rebuilding.
+- Writes transaction receipts with payment method/reference, gross amount, and VAT component to `data/transactions.csv`.
+- Provides a transaction history with revenue and VAT totals for reconciliation.
 
-## 3. Main modules
+Default rates retain the original schedule: free for 30 minutes, KSh 50 through 120 minutes, KSh 100 through 360 minutes, and KSh 500 above that. Management can change the time limits, amounts, and VAT rate in the dashboard.
 
-1. **Parking Slot Management** — displays 20 slots and their status.
-2. **Vehicle Arrival / Admission** — validates input, prevents duplicate active registrations and allocates the first available slot.
-3. **Vehicle Search / Monitoring** — finds an active vehicle by registration number.
-4. **Vehicle Exit & Fee Calculation** — calculates elapsed time and applies the MMU fee rules.
-5. **Payment & Barrier Control** — records a completed transaction and reports that the barrier is OPEN.
-6. **Transaction History & Reporting** — displays completed parking transactions and total revenue.
-7. **Dynamic Persistence** — stores slot, active-vehicle and transaction data in CSV database files.
-8. **Web/API Layer** — serves the dashboard and JSON-style HTTP API endpoints.
+## Payment and deployment boundary
 
-## 4. Data structures used
+This prototype records an operator's confirmation and reference after they verify a payment externally. It does not initiate or verify live M-Pesa or card transactions. Cash must be physically received before confirmation. The current HTTP server also has no user authentication; do not expose it to an untrusted network. Production deployment requires authenticated management access, a payment-provider integration/callback, and protected storage.
 
-- `std::vector<ParkingSlot>`: stores the fixed parking-slot collection and supports ordered visual display.
-- `std::unordered_map<string, ActiveVehicle>`: maps registration number to an active vehicle, giving average O(1) lookup for search, duplicate detection and exit processing.
-- `std::vector<ParkingTransaction>`: stores completed transactions in insertion order.
-- `std::mutex`: protects shared in-memory data because each HTTP request is handled by a separate C++ thread.
+## API
 
-## 5. Dynamic database design
+- `GET /api/status` — bay map, availability, occupancy, revenue, and VAT total.
+- `POST /api/arrival` — form fields `plate`, `owner`.
+- `POST /api/exit` — form field `plate`; returns a quote without releasing the bay when a fee is due.
+- `POST /api/payment` — form fields `plate`, `method`, `reference`, `quotedFee`; confirms payment and opens the barrier in the simulation.
+- `GET /api/rates` and `POST /api/rates` — read or update rate bands and VAT.
+- `GET /api/search?plate=...` — find an active vehicle.
+- `GET /api/transactions` — completed receipt and payment records.
+- `GET /` — operator dashboard; `GET /board` — entrance display.
 
-The project uses a simple persistent file-based database so it can run without installing MySQL or another DBMS.
+Transaction CSV rows from the earlier seven-column format remain readable. New records include method, reference, receipt number, and VAT amount. See [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) for the file schemas.
 
-### `data/slots.csv`
+## Out of scope
 
-| Field | Type | Description |
-|---|---|---|
-| id | INT | Unique slot number |
-| occupied | BOOLEAN | 1 if occupied, otherwise 0 |
-| plate | VARCHAR | Registration of occupying vehicle |
-
-### `data/active_vehicles.csv`
-
-| Field | Type | Description |
-|---|---|---|
-| plate | VARCHAR | Vehicle registration; logical key |
-| owner | VARCHAR | Driver/owner name |
-| slot | INT | Allocated slot |
-| arrival | DATETIME | Arrival date and time |
-
-### `data/transactions.csv`
-
-| Field | Type | Description |
-|---|---|---|
-| plate | VARCHAR | Vehicle registration |
-| slot | INT | Slot used |
-| arrival | DATETIME | Entry time |
-| departure | DATETIME | Exit time |
-| duration_minutes | BIGINT | Total parking time |
-| fee | DECIMAL | Amount charged in KSh |
-| payment_status | VARCHAR | FREE or PAID |
-
-## 6. Web API endpoints
-
-- `GET /api/status` — slot map and system summary.
-- `POST /api/arrival` — registers an arrival using `plate` and `owner` form fields.
-- `POST /api/exit` — processes exit using the `plate` form field.
-- `GET /api/search?plate=...` — searches active vehicles.
-- `GET /api/transactions` — returns completed transactions.
-- `GET /` — loads the web dashboard.
-
-## 7. Project structure
-
-```text
-MMU-Modern-Parking-System/
-├── .vscode/
-│   ├── launch.json
-│   └── tasks.json
-├── data/
-│   ├── active_vehicles.csv
-│   ├── slots.csv
-│   └── transactions.csv
-├── docs/
-│   ├── ALGORITHMS.md
-│   └── DATABASE_DESIGN.md
-├── include/
-│   ├── ParkingSystem.h
-│   └── WebServer.h
-├── src/
-│   ├── main.cpp
-│   ├── ParkingSystem.cpp
-│   └── WebServer.cpp
-├── web/
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-├── build.bat
-├── run.bat
-├── run.sh
-├── .gitignore
-├── Parking_System_Assignment.docx
-└── README.me
-
-## 8. How to demonstrate the system
-
-1. Open the dashboard and show the 20 available slots.
-2. Enter a registration number such as `KDA 123A` and a driver name.
-3. Click **Admit Vehicle**. Slot 01 becomes occupied.
-4. Use **Find Active Vehicle** to locate the vehicle and show its allocated slot.
-5. Use **Vehicle Exit** with the same registration. The system calculates the actual elapsed time, applies the fee rule, records the transaction and frees the slot.
-6. Refresh the page and show transaction history and revenue.
-
-For a quick classroom demonstration, a vehicle exited within 30 minutes produces a FREE transaction. To demonstrate KSh 50, KSh 100 or KSh 500, the vehicle 
+Online prebooking, valet operations, third-party loyalty integrations, and automated number-plate blacklisting are not implemented in this phase.

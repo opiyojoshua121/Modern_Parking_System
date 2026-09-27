@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MMU Modern Parking System</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/workflow.css">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>MMU Modern Parking System</h1>
     </div>
-    <div class="server-pill"><span class="dot"></span> System Online</div>
+    <div class="top-actions"><a class="small-btn" href="/board" target="_blank" rel="noopener">Entrance Display</a><div class="server-pill"><span class="dot"></span> System Online</div></div>
   </header>
 
   <main class="container">
@@ -20,6 +21,7 @@
       <article class="card stat"><span>Available</span><strong id="availableSlots">20</strong></article>
       <article class="card stat"><span>Occupied</span><strong id="occupiedSlots">0</strong></article>
       <article class="card stat"><span>Revenue</span><strong id="revenue">KSh 0.00</strong></article>
+      <article class="card stat"><span>VAT included</span><strong id="vatCollected">KSh 0.00</strong></article>
     </section>
 
     <section class="layout">
@@ -45,9 +47,18 @@
           <h2>Vehicle Exit</h2>
           <form id="exitForm">
             <label>Registration Number<input id="exitPlate" required placeholder="KDA 123A" maxlength="20"></label>
-            <button class="secondary" type="submit">Calculate &amp; Open Barrier</button>
+            <button class="secondary" type="submit">Calculate Fee</button>
           </form>
           <div id="exitResult" class="result hidden"></div>
+          <div id="paymentPanel" class="payment-panel hidden">
+            <form id="paymentForm">
+              <label>Payment Method<select id="paymentMethod" required><option value="CASH">Cash received</option><option value="MPESA">M-Pesa</option><option value="CARD">Card</option></select></label>
+              <label id="referenceField">Payment Reference<input id="paymentReference" maxlength="80" placeholder="Confirmed receipt / authorization code"></label>
+              <p class="payment-note">Verify M-Pesa or card payment with the provider before confirming. Cash must be received before confirmation.</p>
+              <button type="submit">Confirm Payment &amp; Open Barrier</button>
+              <button id="cancelPayment" class="secondary" type="button">Cancel</button>
+            </form>
+          </div>
         </div>
 
         <div class="card form-card">
@@ -64,14 +75,23 @@
     <section class="card transactions-card">
       <div class="section-heading"><div><h2>Completed Transactions</h2></div><button id="refreshBtn" class="small-btn">Refresh</button></div>
       <div class="table-wrap">
-        <table><thead><tr><th>Plate</th><th>Slot</th><th>Arrival</th><th>Departure</th><th>Duration</th><th>Fee</th><th>Status</th></tr></thead>
-        <tbody id="transactionBody"><tr><td colspan="7" class="empty">No completed transactions yet.</td></tr></tbody></table>
+        <table><thead><tr><th>Plate</th><th>Slot</th><th>Arrival</th><th>Departure</th><th>Duration</th><th>Fee</th><th>Method</th><th>Reference</th><th>Receipt</th><th>VAT</th><th>Status</th></tr></thead>
+        <tbody id="transactionBody"><tr><td colspan="11" class="empty">No completed transactions yet.</td></tr></tbody></table>
       </div>
     </section>
 
     <section class="card rules">
-      <h2>Parking Fee Charges</h2>
-      <div class="rule-grid"><div><b>0–30 minutes</b><span>FREE</span></div><div><b>Over 30 min–2 hours</b><span>KSh 50</span></div><div><b>Over 2–6 hours</b><span>KSh 100</span></div><div><b>Over 6 hours</b><span>KSh 500</span></div></div>
+      <h2>Parking Rates &amp; VAT</h2>
+      <form id="ratesForm" class="rate-grid">
+        <label>Free up to (minutes)<input name="freeMinutes" type="number" min="0" required></label>
+        <label>First band up to (minutes)<input name="firstBandMinutes" type="number" min="1" required></label>
+        <label>Second band up to (minutes)<input name="secondBandMinutes" type="number" min="2" required></label>
+        <label>First band fee (KSh)<input name="firstBandFee" type="number" min="0" step="0.01" required></label>
+        <label>Second band fee (KSh)<input name="secondBandFee" type="number" min="0" step="0.01" required></label>
+        <label>Above second band (KSh)<input name="overSecondBandFee" type="number" min="0" step="0.01" required></label>
+        <label>VAT rate (%)<input name="vatPercent" type="number" min="0" max="100" step="0.01" required></label>
+        <button type="submit">Save Rates</button>
+      </form>
     </section>
   </main>
   <footer>MMU Parking System</footer>

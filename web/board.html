@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="3600">
+  <title>Live Parking Availability</title>
+  <link rel="stylesheet" href="/board.css">
+</head>
+<body>
+  <main class="board-shell">
+    <header class="board-header">
+      <div><p class="board-kicker">MMU PARKING</p><h1>Available bays</h1></div>
+      <div class="board-totals"><strong id="availableCount">--</strong><span>available</span><i></i><strong id="occupiedCount">--</strong><span>occupied</span></div>
+    </header>
+    <section id="slotGrid" class="board-grid" aria-live="polite" aria-label="Live parking bay availability"></section>
+    <footer><span id="boardStatus">Connecting to parking system…</span><span>Updated <time id="updatedAt">--:--:--</time></span></footer>
+  </main>
+  <script src="/board.js"></script>
+</body>
+</html>
